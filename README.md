@@ -8,7 +8,7 @@ git clone https://github.com/HOLL95/Parkin_group_electrochemistry_plotting/
 navigate into the cloned directory and run:
 
 ```
-python3 -m pip install r requirements.txt
+python3 -m pip install -r requirements.txt
 ```
 which should provide the modules you need. The plotting is done from the master_plotting.py file, which provides a description of how to load files, and what the various options do. To run:
 ```
