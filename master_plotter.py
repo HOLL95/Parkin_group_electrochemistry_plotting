@@ -12,7 +12,7 @@ read_files=read(
 Electrochem_plots(
     read_files.data, 
     order=["time", "current", "potential"], #Order of data in the columns. If for whatever reason your files have different ordering, you will need to provide the order for each file
-    desired_plots=["potential-current", "potential-harmonics", "Fourier", "time-harmonics"], #desired plots. Unless it's Fourier then the format is X-Y (for time/potential/current/harmonics)
+    desired_plots=[ "time-potential", "potential-current", "potential-harmonics"], #desired plots. Unless it's Fourier then the format is X-Y (for time/potential/current/harmonics)
     one_tail=True, #If True then ignore negative frequencies in FT
     Fourier_harmonic_crop=True, #If True then will crop the Fourier transform to the max harmonic in desired_harmonics
     FourierScale="none", #either "log" or "none" for FT
@@ -24,7 +24,10 @@ Electrochem_plots(
     harmonic_funcs="Real", # "Abs", "Real", or "Imag" for harmonics
     current_scaling=1000, #factor multipy current by (milli micro nano etc)
     potential_scaling=1000, #ditto for potential, 
-    harmonic_number=True #True/False for showing the harmonic number
+    harmonic_number=True, #True/False for showing the harmonic number
+    labels=example_file_list, #What you want each trace to be called - needs to be a list, e.g ["exp_1", "exp_2"]
+    legend_loc=1,#which plot you want your legend to go in
+    
 )
 subplots_adjust(
                 top=0.992, 

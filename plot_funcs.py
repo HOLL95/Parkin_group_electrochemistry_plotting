@@ -12,6 +12,12 @@ class Electrochem_plots:
             kwargs["one_tail"]=True
         else:
             self.valid_checker(kwargs["one_tail"], "bool", "one_tail")
+        if "labels" not in kwargs:
+            kwargs["labels"]=[None for i in range(0, len(data))]
+        if "legend_loc" not in kwargs:
+            kwargs["legend_loc"]=None
+        if kwargs["legend_loc"]>num_plots-1:
+            raise ValueError("Legend loc needs to be lower than the number of plots")
         if "harmonic_number" not in kwargs:
             kwargs["harmonic_number"]=True
         else:
@@ -101,10 +107,16 @@ class Electrochem_plots:
                 if plotting_harmonics==True:
                     if plot_version=="axes_list":
                         axis=ax
+                        legend_axis=ax[0]
                     elif plot_version=="axes_dict":
                         axis=figure.axes_dict["col{0}".format(i+1)]
+                        if kwargs["legend_loc"]!=None:
+                            legend_axis=figure.axes_dict["col{0}".format(kwargs["legend_loc"]+1)][0]
                 else:
                     axis=[ax[i]]
+                    if kwargs["legend_loc"]!=None:
+                        print(ax, kwargs["legend_loc"])
+                        legend_axis=ax[kwargs["legend_loc"]]
 
 
                 Fourier_plot=False
@@ -140,15 +152,15 @@ class Electrochem_plots:
                         for i in range(1, highest_harm+1):
                             axis[0].axvline(i*max_freq, color="black", linestyle="--")
                     if kwargs["FourierScale"]=="log":
-                        axis[0].semilogy(plot_freq, np.abs(plot_Y))
+                        axis[0].semilogy(plot_freq, np.abs(plot_Y), label=kwargs["labels"][j])
                     else:
-                        axis[0].plot(plot_freq, plot_Y)
+                        axis[0].plot(plot_freq, plot_Y, label=kwargs["labels"][j])
                     axis[0].set_xlabel("Frequency (Hz)")
                     axis[0].set_ylabel("Magnitude")
                 elif "harmonics" not in desired_plots[i]:
                     x_data=plot_dict[x_axis]
                     y_data=plot_dict[y_axis]
-                    axis[0].plot(x_data, y_data)
+                    axis[0].plot(x_data, y_data, label=kwargs["labels"][j])
                     axis[0].set_xlabel(plot_labels[x_axis])
                     axis[0].set_ylabel(plot_labels[y_axis])
                 elif "harmonics" in desired_plots[i]:
@@ -157,7 +169,7 @@ class Electrochem_plots:
                     h_class=harmonics(kwargs["desired_harmonics"], max_freq, kwargs["harmonics_box"])
                     plot_harms=h_class.generate_harmonics(plot_dict["time"], plot_dict["current"], hanning=kwargs["harmonic_hanning"], plot_func=fourier_funcs[kwargs["harmonic_funcs"]])
                     for h in range(0, num_harms):
-                        axis[h].plot(x_data, hfunc(plot_harms[h, :]))
+                        axis[h].plot(x_data, hfunc(plot_harms[h, :]), label=kwargs["labels"][j])
                         if h==num_harms-1:
                              axis[h].set_xlabel(plot_labels[x_axis])
                         else:
@@ -169,6 +181,8 @@ class Electrochem_plots:
                                 twinx=axis[h].twinx()
                                 twinx.set_ylabel(master_harmonics[h], rotation=0)
                                 twinx.set_yticks([])
+            if kwargs["legend_loc"]!=None:
+                legend_axis.legend()
     def valid_checker(self, argument, arg_type, key, range=None):
         if arg_type=="bool":
             if not isinstance(argument, bool):
