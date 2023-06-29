@@ -2,18 +2,26 @@ import matplotlib.pyplot as plt
 import numpy as np
 from harmonics_plotter import harmonics
 from multiplotter import multiplot
+from scipy.signal import decimate
 import warnings
 class Electrochem_plots:
     def __init__(self, data, order, desired_plots, **kwargs):
         num_plots=len(desired_plots)
         if len(order)!=len(data):
             order=[order]*len(data)
+        elif len(data)==3:
+            order=[order]*3
+        if "colour" not in kwargs:
+            kwargs["colour"]=None
         if "one_tail" not in kwargs:
             kwargs["one_tail"]=True
         else:
             self.valid_checker(kwargs["one_tail"], "bool", "one_tail")
         if "labels" not in kwargs:
             kwargs["labels"]=[None for i in range(0, len(data))]
+        else:
+            if len(kwargs["labels"])!= len(data):
+                raise ValueError("Label list ({0}) needs to be as long as the number of data files ({1})".format(len(kwargs["labels"]), len(data)))
         if "legend_loc" not in kwargs:
             kwargs["legend_loc"]=None
         if kwargs["legend_loc"]>num_plots-1:
@@ -42,6 +50,8 @@ class Electrochem_plots:
             kwargs["harmonic_hanning"]=False
         else:
             self.valid_checker(kwargs["harmonic_hanning"], "bool","harmonic_hanning")
+        if "decimation" not in kwargs:
+            kwargs["decimation"]=False
         if "harmonic_funcs" not in kwargs:
             kwargs["harmonic_funcs"]="Real"
         else:
@@ -54,6 +64,8 @@ class Electrochem_plots:
             kwargs["current_scaling"]=1
         if "potential_scaling" not in kwargs:
             kwargs["potential_scaling"]=1
+        if "DC_only" not in kwargs:
+            kwargs["DC_only"]=False
        
         fourier_funcs={"Abs":np.abs, "Real":np.real, "Imag":np.imag}
         if "time-harmonics" in desired_plots or "potential-harmonics" in desired_plots:
@@ -74,7 +86,7 @@ class Electrochem_plots:
             fig, ax=plt.subplots(1, num_plots)
             if num_plots==1:
                 ax=[ax]
-        scale_list={1:"", 1000:"m", 1e6:"$$\\mu", 1e9:"n", 1e12:"p"}
+        scale_list={1:"", 1000:"m", 1e6:r"$\mu$", 1e9:"n", 1e12:"p"}
         plot_units={"current":"A", "potential":"V"}
         plot_labels={"time":"Time(s)"}
         for scaling in ["current", "potential"]:
@@ -85,17 +97,36 @@ class Electrochem_plots:
                 raise ValueError(scaling +" needs to be integer powers of ten only")
             plot_labels[scaling]=scaling.title()+" ("+scale_list[scale_factor]+plot_units[scaling]+")"
         for j in range(0, len(data)):
+            #if isinstance(order[0], str):
+            #    order=[order]
             
-            plot_dict={key:data[j][:,order[j].index(key)] for key in ["current", "potential", "time"]}
+            if kwargs["decimate"]==False:
+                plot_dict={key:data[j][:,order[j].index(key)] for key in ["current", "potential", "time"]}
+            else:
+                plot_dict={key:decimate(data[j][:,order[j].index(key)], kwargs["decimate"]) for key in ["current", "potential", "time"]}
             for scaling in ["current", "potential"]:
                 plot_dict[scaling]=np.multiply(plot_dict[scaling], kwargs[scaling+"_scaling"])
+           
+
             master_harmonics=kwargs["desired_harmonics"]
             fft=np.fft.fft(plot_dict["current"])
+            abs_fft=np.abs(fft)
             fft_freq=np.fft.fftfreq(len(plot_dict["current"]), plot_dict["time"][1]-plot_dict["time"][0])
-            max_freq=abs(max(fft_freq[np.where(fft==max(fft))]))
+            max_freq=abs(max(fft_freq[np.where(abs_fft==max(abs_fft))]))
             highest_harm=kwargs["desired_harmonics"][-1]
             upper_bound=max_freq*(highest_harm+0.25)
             highest_freq=abs(fft_freq[len(fft_freq)//2])
+            if kwargs["DC_only"]==True:
+                pot=plot_dict["potential"]
+                fft_pot=np.fft.fft(pot)
+                zero_harm_idx=np.where((fft_freq>-(0.5*max_freq)) & (fft_freq<(0.5*max_freq)))
+                dc_pot=np.zeros(len(fft_pot), dtype="complex")
+                dc_pot[zero_harm_idx]=fft_pot[zero_harm_idx]
+                plot_dict["potential"]=np.fft.ifft(dc_pot)
+                
+                #plt.plot(fft_freq, abs(fft_pot))
+                #plt.plot(fft_freq, abs(dc_pot))
+                #plt.show()
             if upper_bound>highest_freq:
 
                 highest_harm= int(highest_freq//max_freq)
@@ -152,15 +183,16 @@ class Electrochem_plots:
                         for i in range(1, highest_harm+1):
                             axis[0].axvline(i*max_freq, color="black", linestyle="--")
                     if kwargs["FourierScale"]=="log":
-                        axis[0].semilogy(plot_freq, np.abs(plot_Y), label=kwargs["labels"][j])
+                        axis[0].semilogy(plot_freq, np.abs(plot_Y), label=kwargs["labels"][j], color=kwargs["colour"])
                     else:
-                        axis[0].plot(plot_freq, plot_Y, label=kwargs["labels"][j])
+                        axis[0].plot(plot_freq, plot_Y, label=kwargs["labels"][j], color=kwargs["colour"])
                     axis[0].set_xlabel("Frequency (Hz)")
                     axis[0].set_ylabel("Magnitude")
                 elif "harmonics" not in desired_plots[i]:
                     x_data=plot_dict[x_axis]
                     y_data=plot_dict[y_axis]
-                    axis[0].plot(x_data, y_data, label=kwargs["labels"][j])
+                   
+                    axis[0].plot(x_data, y_data, label=kwargs["labels"][j], )
                     axis[0].set_xlabel(plot_labels[x_axis])
                     axis[0].set_ylabel(plot_labels[y_axis])
                 elif "harmonics" in desired_plots[i]:
@@ -169,7 +201,7 @@ class Electrochem_plots:
                     h_class=harmonics(kwargs["desired_harmonics"], max_freq, kwargs["harmonics_box"])
                     plot_harms=h_class.generate_harmonics(plot_dict["time"], plot_dict["current"], hanning=kwargs["harmonic_hanning"], plot_func=fourier_funcs[kwargs["harmonic_funcs"]])
                     for h in range(0, num_harms):
-                        axis[h].plot(x_data, hfunc(plot_harms[h, :]), label=kwargs["labels"][j])
+                        axis[h].plot(x_data, hfunc(plot_harms[h, :]), label=kwargs["labels"][j], color=kwargs["colour"])
                         if h==num_harms-1:
                              axis[h].set_xlabel(plot_labels[x_axis])
                         else:

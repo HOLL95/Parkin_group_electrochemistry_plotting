@@ -1,6 +1,6 @@
-from numpy import loadtxt
+from numpy import loadtxt, column_stack
 import re
-from pandas import read_csv
+from pandas import read_csv, read_excel
 from os import getcwd
 class read:
     def __init__(self, name, **kwargs):
@@ -26,10 +26,17 @@ class read:
                 kwargs["header"]=[kwargs["header"]]*len(name)
             if isinstance(kwargs["footer"], int):
                 kwargs["footer"]=[kwargs["footer"]]*len(name)
+            if kwargs["substring"]!=None:
+                self.name_list=[]
+            else:
+                self.name_list=name
             for i in range(0, len(name)):
                 if kwargs["substring"]!=None:
                     if kwargs["substring"] not in name[i]:
                         continue
+                    else:
+                        self.name_list.append(name[i])
+                
                 filetype=self.detect_filetype(name[i])
                 if filetype!=None:
                     data_list.append(self.read_file(directory+"/"+name[i], filetype, header=kwargs["header"][i], footer=kwargs["footer"][i]))
@@ -41,7 +48,7 @@ class read:
     
     def detect_filetype(self, file):
         filetype=None
-        accepted_files=[".csv", ".txt"]
+        accepted_files=[".csv", ".txt", ".xlsx", "cv_"]
         for extension in accepted_files:
             if extension in file:
                 filetype=extension
@@ -50,9 +57,19 @@ class read:
            print("File needs to be {0}, skipping {1}".format(("/").join(accepted_files), file) )
         return  filetype
     def read_file(self, name, filetype, header, footer):
+        print("Reading {0}".format(name))
         if filetype==".txt":
             data=loadtxt(name, skiprows=header)
         elif filetype==".csv":
-            pd_data=read_csv(data_loc+file, sep=",", encoding="utf-16", engine="python", skiprows=header, skipfooter=footer)
+            pd_data=read_csv(name, sep=",", encoding="utf-16", engine="python", skiprows=header, skipfooter=footer)
             data=pd_data.to_numpy(copy=True, dtype='float')
+        elif filetype==".xlsx":
+            pd_data = read_excel(name,engine='openpyxl', skiprows=header, skipfooter=footer)
+            data = pd_data.to_numpy(copy=True, dtype='float')
+        elif "cv_" in name:
+            true_name=re.findall( ".+(?=cv_)", name)[0]
+            current=loadtxt(true_name+"cv_current")
+            potential=loadtxt(true_name+"cv_voltage")
+            data=column_stack((current, potential[:,1]))    
+            print("Warning - Monash intrument data stored as time-current-potential")
         return data
