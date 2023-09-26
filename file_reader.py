@@ -30,6 +30,7 @@ class read:
                 self.name_list=[]
             else:
                 self.name_list=name
+            exclude_list=[]
             for i in range(0, len(name)):
                 if kwargs["substring"]!=None:
                     if kwargs["substring"] not in name[i]:
@@ -38,8 +39,22 @@ class read:
                         self.name_list.append(name[i])
                 
                 filetype=self.detect_filetype(name[i])
+               
                 if filetype!=None:
-                    data_list.append(self.read_file(directory+"/"+name[i], filetype, header=kwargs["header"][i], footer=kwargs["footer"][i]))
+                    
+                    already_in=False
+                    if filetype=="cv_":
+                        true_name=re.findall( ".+(?=cv_)", name[i])[0]
+                        
+                        for element in exclude_list:
+                            if true_name in element:
+                                already_in=True
+                    if already_in is not True:    
+                        data_list.append(self.read_file(directory+"/"+name[i], filetype, header=kwargs["header"][i], footer=kwargs["footer"][i]))
+                        if filetype=="cv_":
+                            exclude_list.append(name[i])
+                            print("hey", name[i], exclude_list)
+
             self.data=data_list
         else:
             raise TypeError("Needs to either be a file or list of files")
@@ -57,7 +72,7 @@ class read:
            print("File needs to be {0}, skipping {1}".format(("/").join(accepted_files), file) )
         return  filetype
     def read_file(self, name, filetype, header, footer):
-        print("Reading {0}".format(name))
+        #print("Reading {0}".format(name))
         if filetype==".txt":
             data=loadtxt(name, skiprows=header)
         elif filetype==".csv":
@@ -71,5 +86,5 @@ class read:
             current=loadtxt(true_name+"cv_current")
             potential=loadtxt(true_name+"cv_voltage")
             data=column_stack((current, potential[:,1]))    
-            print("Warning - Monash intrument data stored as time-current-potential")
+            #print("Warning - Monash intrument data stored as time-current-potential")
         return data

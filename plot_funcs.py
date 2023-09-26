@@ -46,12 +46,15 @@ class Electrochem_plots:
             kwargs["harmonics_box"]=0.1
         else:
             self.valid_checker(kwargs["harmonics_box"], "Numerical list","harmonics_box", [0.01, 0.5])
+        
         if "harmonic_hanning" not in kwargs:
             kwargs["harmonic_hanning"]=False
         else:
             self.valid_checker(kwargs["harmonic_hanning"], "bool","harmonic_hanning")
         if "decimation" not in kwargs:
             kwargs["decimation"]=False
+        else:
+            self.valid_checker(kwargs["decimation"], "int","decimation")
         if "harmonic_funcs" not in kwargs:
             kwargs["harmonic_funcs"]="Real"
         else:
@@ -100,10 +103,10 @@ class Electrochem_plots:
             #if isinstance(order[0], str):
             #    order=[order]
             
-            if kwargs["decimate"]==False:
+            if kwargs["decimation"]==False:
                 plot_dict={key:data[j][:,order[j].index(key)] for key in ["current", "potential", "time"]}
             else:
-                plot_dict={key:decimate(data[j][:,order[j].index(key)], kwargs["decimate"]) for key in ["current", "potential", "time"]}
+                plot_dict={key:decimate(data[j][:,order[j].index(key)], kwargs["decimation"]) for key in ["current", "potential", "time"]}
             for scaling in ["current", "potential"]:
                 plot_dict[scaling]=np.multiply(plot_dict[scaling], kwargs[scaling+"_scaling"])
            
@@ -192,7 +195,7 @@ class Electrochem_plots:
                     x_data=plot_dict[x_axis]
                     y_data=plot_dict[y_axis]
                    
-                    axis[0].plot(x_data, y_data, label=kwargs["labels"][j], )
+                    axis[0].plot(x_data, y_data, label=kwargs["labels"][j], color=kwargs["colour"])
                     axis[0].set_xlabel(plot_labels[x_axis])
                     axis[0].set_ylabel(plot_labels[y_axis])
                 elif "harmonics" in desired_plots[i]:
@@ -219,6 +222,9 @@ class Electrochem_plots:
         if arg_type=="bool":
             if not isinstance(argument, bool):
                 raise TypeError(key +"needs to be True/False")
+        if arg_type=="int":
+            if not isinstance(argument, int):
+                raise TypeError(key +"needs to be int")
         if arg_type=="Numerical list":
             if argument<range[0] or argument>range[1]:
                 raise ValueError(key + "needs to be in the range [{0}, {1}]".format(*range))
