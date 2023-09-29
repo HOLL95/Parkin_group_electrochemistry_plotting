@@ -4,7 +4,7 @@ from plot_funcs import Electrochem_plots
 from matplotlib.pyplot import show, subplots_adjust
 loc="/home/henney/Documents/Oxford/Experimental_data/Alice/Immobilised_Fc/GC-1/Fc/Exported/"
 example_file_list=os.listdir(loc) #This is how you can find a list of files in a directory
-sub_str="FTV_GC-1_Fc"
+sub_str="PSV"
 read_files=read(
         example_file_list, #List of file names - if not in the directory with master_plotter, and address needs to be provided file_loc
         header=1, #Number of rows to skip - if this not constant between files, you will need to provide a list [x,y...] of the appropriate skipnumber
@@ -23,16 +23,17 @@ Electrochem_plots(
     Fourier_frequency_lines=True, #WIll attempt to draw lines on the Fourier transform at the location of the harmonics
     harmonics_box=0.5, #Width of the inverse transform box when calculating the harmonics
     desired_harmonics=list(range(1,12)), #Harmonics to be plotted (it may be that your spectrum does not go up that high, in which case they won't be plotted)
-    harmonic_hanning=True, #Whether or not to apply the hanning transform which suprresses the signal at the start and end of the experiment
-    harmonic_funcs="Abs", # "Abs", "Real", or "Imag" for harmonics
+    harmonic_hanning=False, #Whether or not to apply the hanning transform which suprresses the signal at the start and end of the experiment
+    harmonic_funcs="Real", # "Abs", "Real", or "Imag" for harmonics
     current_scaling=1000, #factor multipy current by (milli micro nano etc)
     potential_scaling=1000, #ditto for potential, 
     harmonic_number=True, #True/False for showing the harmonic number
     labels=[""], #What you want each trace to be called - needs to be a list, e.g ["exp_1", "exp_2"]
     legend_loc=0,#which plot you want your legend to go in, 
-    colour='#ff3ea7',
-    DC_only=True,#If you want to plot the DC component of the potential
-    decimation=16#Degree of plot decimation
+    colour='red',
+    DC_only=False,#If you want to plot the DC component of the potential
+    decimation=32,#Degree of plot decimation
+    print_FTV_info=True,
     
 )
 subplots_adjust(

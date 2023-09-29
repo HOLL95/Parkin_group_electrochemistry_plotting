@@ -69,6 +69,9 @@ class Electrochem_plots:
             kwargs["potential_scaling"]=1
         if "DC_only" not in kwargs:
             kwargs["DC_only"]=False
+        if "print_FTV_info" not in kwargs:
+            kwarg["print_FTV_info"]=False
+
        
         fourier_funcs={"Abs":np.abs, "Real":np.real, "Imag":np.imag}
         if "time-harmonics" in desired_plots or "potential-harmonics" in desired_plots:
@@ -116,20 +119,33 @@ class Electrochem_plots:
             abs_fft=np.abs(fft)
             fft_freq=np.fft.fftfreq(len(plot_dict["current"]), plot_dict["time"][1]-plot_dict["time"][0])
             max_freq=abs(max(fft_freq[np.where(abs_fft==max(abs_fft))]))
+           
             highest_harm=kwargs["desired_harmonics"][-1]
             upper_bound=max_freq*(highest_harm+0.25)
             highest_freq=abs(fft_freq[len(fft_freq)//2])
-            if kwargs["DC_only"]==True:
+            if kwargs["DC_only"]==True or kwargs["print_FTV_info"]==True:
                 pot=plot_dict["potential"]
                 fft_pot=np.fft.fft(pot)
                 zero_harm_idx=np.where((fft_freq>-(0.5*max_freq)) & (fft_freq<(0.5*max_freq)))
                 dc_pot=np.zeros(len(fft_pot), dtype="complex")
                 dc_pot[zero_harm_idx]=fft_pot[zero_harm_idx]
-                plot_dict["potential"]=np.fft.ifft(dc_pot)
-                
-                #plt.plot(fft_freq, abs(fft_pot))
-                #plt.plot(fft_freq, abs(dc_pot))
-                #plt.show()
+                time_domain_dc_pot=np.real(np.fft.ifft(dc_pot))
+                if kwargs["print_FTV_info"]==True:
+                    
+                    #diff=abs(np.diff(time_domain_dc_pot[200:-200]))
+                    #scan_rates=[np.mean(diff)/(dt*kwargs["potential_scaling"]), np.std(diff)/(dt*kwargs["potential_scaling"])]
+                    E_points=np.divide([min(time_domain_dc_pot), max(time_domain_dc_pot)], kwargs["potential_scaling"])
+                    
+                    scan_rate=((E_points[1]-E_points[0])*2)/plot_dict["time"][-1]
+                if kwargs["DC_only"]==True:
+                    plot_dict["potential"]=time_domain_dc_pot
+            if kwargs["print_FTV_info"]==True:
+                print("Input frequency best guess is {0} Hz".format(max_freq))
+                if kwargs["DC_only"]==False:
+                    print("For more info set DC_only to True")
+                else:
+                    print("Estimated scan rate={0} V/s".format(scan_rate))
+                    print("Best guess E_start={0} V, E_reverse={1} V".format(E_points[0], E_points[1]))
             if upper_bound>highest_freq:
 
                 highest_harm= int(highest_freq//max_freq)
@@ -188,7 +204,7 @@ class Electrochem_plots:
                     if kwargs["FourierScale"]=="log":
                         axis[0].semilogy(plot_freq, np.abs(plot_Y), label=kwargs["labels"][j], color=kwargs["colour"])
                     else:
-                        axis[0].plot(plot_freq, plot_Y, label=kwargs["labels"][j], color=kwargs["colour"])
+                        axis[0].plot(plot_freq, np.real(plot_Y), label=kwargs["labels"][j], color=kwargs["colour"])
                     axis[0].set_xlabel("Frequency (Hz)")
                     axis[0].set_ylabel("Magnitude")
                 elif "harmonics" not in desired_plots[i]:

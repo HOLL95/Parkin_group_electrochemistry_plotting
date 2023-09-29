@@ -72,7 +72,7 @@ class read:
            print("File needs to be {0}, skipping {1}".format(("/").join(accepted_files), file) )
         return  filetype
     def read_file(self, name, filetype, header, footer):
-        #print("Reading {0}".format(name))
+        print("Reading {0}".format(name))
         if filetype==".txt":
             data=loadtxt(name, skiprows=header)
         elif filetype==".csv":
@@ -86,5 +86,5 @@ class read:
             current=loadtxt(true_name+"cv_current")
             potential=loadtxt(true_name+"cv_voltage")
             data=column_stack((current, potential[:,1]))    
-            #print("Warning - Monash intrument data stored as time-current-potential")
+            print("Warning - Monash intrument data stored as time-current-potential")
         return data
