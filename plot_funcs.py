@@ -13,7 +13,8 @@ class Electrochem_plots:
             order=[order]*3
         if "colour" not in kwargs:
             kwargs["colour"]=[None]*len(data)
-
+        elif kwargs["colour"] is None:
+            kwargs["colour"]=[None]*len(data)
         elif len(data)==1:
             if kwargs["colour"] is not list:
                 kwargs["colour"]=[kwargs["colour"]]
