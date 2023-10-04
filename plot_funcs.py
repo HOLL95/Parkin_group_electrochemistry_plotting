@@ -12,7 +12,14 @@ class Electrochem_plots:
         elif len(data)==3:
             order=[order]*3
         if "colour" not in kwargs:
-            kwargs["colour"]=None
+            kwargs["colour"]=[None]*len(data)
+
+        elif len(data)==1:
+            if kwargs["colour"] is not list:
+                kwargs["colour"]=[kwargs["colour"]]
+        elif kwargs["colour"] is not list or len(kwargs["colour"]) != len(data):
+            raise ValueError("For multiple plots, you need to provide a colour for each plot in the format  [\"colour1\", \"colour2\"]")
+            
         if "one_tail" not in kwargs:
             kwargs["one_tail"]=True
         else:
@@ -202,16 +209,16 @@ class Electrochem_plots:
                         for i in range(1, highest_harm+1):
                             axis[0].axvline(i*max_freq, color="black", linestyle="--")
                     if kwargs["FourierScale"]=="log":
-                        axis[0].semilogy(plot_freq, np.abs(plot_Y), label=kwargs["labels"][j], color=kwargs["colour"])
+                        axis[0].semilogy(plot_freq, np.abs(plot_Y), label=kwargs["labels"][j], color=kwargs["colour"][j])
                     else:
-                        axis[0].plot(plot_freq, np.real(plot_Y), label=kwargs["labels"][j], color=kwargs["colour"])
+                        axis[0].plot(plot_freq, np.real(plot_Y), label=kwargs["labels"][j], color=kwargs["colour"][j])
                     axis[0].set_xlabel("Frequency (Hz)")
                     axis[0].set_ylabel("Magnitude")
                 elif "harmonics" not in desired_plots[i]:
                     x_data=plot_dict[x_axis]
                     y_data=plot_dict[y_axis]
                    
-                    axis[0].plot(x_data, y_data, label=kwargs["labels"][j], color=kwargs["colour"])
+                    axis[0].plot(x_data, y_data, label=kwargs["labels"][j], color=kwargs["colour"][j])
                     axis[0].set_xlabel(plot_labels[x_axis])
                     axis[0].set_ylabel(plot_labels[y_axis])
                 elif "harmonics" in desired_plots[i]:
@@ -220,7 +227,7 @@ class Electrochem_plots:
                     h_class=harmonics(kwargs["desired_harmonics"], max_freq, kwargs["harmonics_box"])
                     plot_harms=h_class.generate_harmonics(plot_dict["time"], plot_dict["current"], hanning=kwargs["harmonic_hanning"], plot_func=fourier_funcs[kwargs["harmonic_funcs"]])
                     for h in range(0, num_harms):
-                        axis[h].plot(x_data, hfunc(plot_harms[h, :]), label=kwargs["labels"][j], color=kwargs["colour"])
+                        axis[h].plot(x_data, hfunc(plot_harms[h, :]), label=kwargs["labels"][j], color=kwargs["colour"][j])
                         if h==num_harms-1:
                              axis[h].set_xlabel(plot_labels[x_axis])
                         else:
