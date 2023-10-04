@@ -18,7 +18,7 @@ class Electrochem_plots:
         elif len(data)==1:
             if kwargs["colour"] is not list:
                 kwargs["colour"]=[kwargs["colour"]]
-        elif kwargs["colour"] is not list or len(kwargs["colour"]) != len(data):
+        elif not isinstance(kwargs["colour"], list) or len(kwargs["colour"]) != len(data):
             raise ValueError("For multiple plots, you need to provide a colour for each plot in the format  [\"colour1\", \"colour2\"]")
             
         if "one_tail" not in kwargs:

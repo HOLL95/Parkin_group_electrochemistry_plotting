@@ -28,9 +28,9 @@ Electrochem_plots(
     current_scaling=1000, #factor multipy current by (milli micro nano etc)
     potential_scaling=1000, #ditto for potential, 
     harmonic_number=True, #True/False for showing the harmonic number
-    labels=[""], #What you want each trace to be called - needs to be a list, e.g ["exp_1", "exp_2"]
+    labels=["e1", "e2"], #What you want each trace to be called - needs to be a list, e.g ["exp_1", "exp_2"]
     legend_loc=0,#which plot you want your legend to go in, 
-    colour='red',
+    colour=['red', "pink"],
     DC_only=False,#If you want to plot the DC component of the potential
     decimation=32,#Degree of plot decimation
     print_FTV_info=True,
