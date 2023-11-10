@@ -30,7 +30,7 @@ Electrochem_plots(
     harmonic_number=True, #True/False for showing the harmonic number
     labels=["e1", "e2"], #What you want each trace to be called - needs to be a list, e.g ["exp_1", "exp_2"]
     legend_loc=0,#which plot you want your legend to go in, 
-    colour=['red', "pink"],
+    colour=['red', "cyan"],
     DC_only=False,#If you want to plot the DC component of the potential
     decimation=32,#Degree of plot decimation
     print_FTV_info=True,

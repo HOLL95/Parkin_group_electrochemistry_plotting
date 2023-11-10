@@ -4,6 +4,7 @@ from harmonics_plotter import harmonics
 from multiplotter import multiplot
 from scipy.signal import decimate
 import warnings
+import pandas as pd
 class Electrochem_plots:
     def __init__(self, data, order, desired_plots, **kwargs):
         num_plots=len(desired_plots)
@@ -78,8 +79,13 @@ class Electrochem_plots:
         if "DC_only" not in kwargs:
             kwargs["DC_only"]=False
         if "print_FTV_info" not in kwargs:
-            kwarg["print_FTV_info"]=False
-
+            kwargs["print_FTV_info"]=False
+        if "save_as_csv" not in kwargs:
+            kwargs["save_as_csv"]=False
+        elif isinstance(kwargs["save_as_csv"], bool) is False:
+            raise ValueError("save_as_csv needs to be True or False, not {0}".format(type(kwargs["save_as_csv"])))
+        #elif ".csv" not in kwargs["save_as_csv"]:
+        #    raise ValueError("Need to provide a csv filename (i.e ending in .csv, not {0})".format(kwargs["save_as_csv"]))
        
         fourier_funcs={"Abs":np.abs, "Real":np.real, "Imag":np.imag}
         if "time-harmonics" in desired_plots or "potential-harmonics" in desired_plots:
@@ -100,7 +106,7 @@ class Electrochem_plots:
             fig, ax=plt.subplots(1, num_plots)
             if num_plots==1:
                 ax=[ax]
-        scale_list={1:"", 1000:"m", 1e6:r"$\mu$", 1e9:"n", 1e12:"p"}
+        scale_list={1:"", 1000:"m", 1e6:r"μ", 1e9:"n", 1e12:"p"}
         plot_units={"current":"A", "potential":"V"}
         plot_labels={"time":"Time(s)"}
         for scaling in ["current", "potential"]:
@@ -110,6 +116,8 @@ class Electrochem_plots:
             if np.log10(scale_factor)%1!=0:
                 raise ValueError(scaling +" needs to be integer powers of ten only")
             plot_labels[scaling]=scaling.title()+" ("+scale_list[scale_factor]+plot_units[scaling]+")"
+        if kwargs["save_as_csv"] is not False:
+            unit_dict=dict(zip(["current", "potential", "time"],["A", "V", "s"]))
         for j in range(0, len(data)):
             #if isinstance(order[0], str):
             #    order=[order]
@@ -118,6 +126,9 @@ class Electrochem_plots:
                 plot_dict={key:data[j][:,order[j].index(key)] for key in ["current", "potential", "time"]}
             else:
                 plot_dict={key:decimate(data[j][:,order[j].index(key)], kwargs["decimation"]) for key in ["current", "potential", "time"]}
+            if kwargs["save_as_csv"] is not False:
+                save_dict={"{0} ({1})".format(key, unit_dict[key]):plot_dict[key] for key in ["time", "potential","current",]}
+                current_save_df=pd.DataFrame(data=save_dict)
             for scaling in ["current", "potential"]:
                 plot_dict[scaling]=np.multiply(plot_dict[scaling], kwargs[scaling+"_scaling"])
            
@@ -127,27 +138,23 @@ class Electrochem_plots:
             abs_fft=np.abs(fft)
             fft_freq=np.fft.fftfreq(len(plot_dict["current"]), plot_dict["time"][1]-plot_dict["time"][0])
             max_freq=abs(max(fft_freq[np.where(abs_fft==max(abs_fft))]))
-           
             highest_harm=kwargs["desired_harmonics"][-1]
             upper_bound=max_freq*(highest_harm+0.25)
             highest_freq=abs(fft_freq[len(fft_freq)//2])
-            if kwargs["DC_only"]==True or kwargs["print_FTV_info"]==True:
-                pot=plot_dict["potential"]
-                fft_pot=np.fft.fft(pot)
-                zero_harm_idx=np.where((fft_freq>-(0.5*max_freq)) & (fft_freq<(0.5*max_freq)))
-                dc_pot=np.zeros(len(fft_pot), dtype="complex")
-                dc_pot[zero_harm_idx]=fft_pot[zero_harm_idx]
-                time_domain_dc_pot=np.real(np.fft.ifft(dc_pot))
-                if kwargs["print_FTV_info"]==True:
-                    
-                    #diff=abs(np.diff(time_domain_dc_pot[200:-200]))
-                    #scan_rates=[np.mean(diff)/(dt*kwargs["potential_scaling"]), np.std(diff)/(dt*kwargs["potential_scaling"])]
-                    E_points=np.divide([min(time_domain_dc_pot), max(time_domain_dc_pot)], kwargs["potential_scaling"])
-                    
-                    scan_rate=((E_points[1]-E_points[0])*2)/plot_dict["time"][-1]
-                if kwargs["DC_only"]==True:
-                    plot_dict["potential"]=time_domain_dc_pot
+            pot=plot_dict["potential"]
+            fft_pot=np.fft.fft(pot)
+            zero_harm_idx=np.where((fft_freq>-(0.5*max_freq)) & (fft_freq<(0.5*max_freq)))
+            dc_pot=np.zeros(len(fft_pot), dtype="complex")
+            dc_pot[zero_harm_idx]=fft_pot[zero_harm_idx]
+            time_domain_dc_pot=np.real(np.fft.ifft(dc_pot))
+            if kwargs["save_as_csv"] is not False:
+                current_save_df["DC_potential ({0}V)".format(scale_list[kwargs["potential_scaling"]])]=time_domain_dc_pot
+            if kwargs["DC_only"]==True:
+                plot_dict["potential"]=time_domain_dc_pot
             if kwargs["print_FTV_info"]==True:
+                E_points=np.divide([min(time_domain_dc_pot), max(time_domain_dc_pot)], kwargs["potential_scaling"])
+            
+                scan_rate=((E_points[1]-E_points[0])*2)/plot_dict["time"][-1]
                 print("Input frequency best guess is {0} Hz".format(max_freq))
                 if kwargs["DC_only"]==False:
                     print("For more info set DC_only to True")
@@ -215,6 +222,9 @@ class Electrochem_plots:
                         axis[0].plot(plot_freq, np.real(plot_Y), label=kwargs["labels"][j], color=kwargs["colour"][j])
                     axis[0].set_xlabel("Frequency (Hz)")
                     axis[0].set_ylabel("Magnitude")
+                    #if kwargs["save_as_csv"] is not False:
+                    #    current_save_df["Frequency (Hz)"]=plot_freq
+                    #    current_save_df[kwargs["FourierFunc"] + " Magnitudes"]=plot_Y
                 elif "harmonics" not in desired_plots[i]:
                     x_data=plot_dict[x_axis]
                     y_data=plot_dict[y_axis]
@@ -240,6 +250,26 @@ class Electrochem_plots:
                                 twinx=axis[h].twinx()
                                 twinx.set_ylabel(master_harmonics[h], rotation=0)
                                 twinx.set_yticks([])
+                        if kwargs["save_as_csv"] is not False:
+                            current_save_df["{2} Harmonic {0} ({1})".format(master_harmonics[h], (scale_list[kwargs["current_scaling"]]+"A"), kwargs["harmonic_funcs"])]=hfunc(plot_harms[h, :])
+            if kwargs["save_as_csv"] is not False:
+                kwarg_keys=list(kwargs.keys())
+                new_list=["" for i in range(0, len(kwarg_keys))]
+                excluded_args=["desired_harmonics", "colour", "legend_loc", "print_FTV_info", "Fourier", "harmonic_number", "labels", "DC_only", "save_as_csv", "one_tail"]
+                for i in range(0, len(kwarg_keys)):
+                    true_list=[x in kwarg_keys[i] for x in excluded_args]
+                    if True in true_list:
+                        continue
+                    if i%4==0:
+                        end="\r\n"
+                    else:
+                        end=""
+                    new_list[i]="{0}:{1}{2}".format(kwarg_keys[i], kwargs[kwarg_keys[i]], end)
+                full_list=(" ").join(new_list)+"\r\n"
+                template = full_list+"{}"
+                with open("{0}.csv".format(kwargs["labels"][j]), 'w') as fp:
+                    fp.write(template.format(current_save_df.to_csv(index=False)))
+                
             if kwargs["legend_loc"]!=None:
                 legend_axis.legend()
     def valid_checker(self, argument, arg_type, key, range=None):

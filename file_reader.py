@@ -14,18 +14,28 @@ class read:
             directory=kwargs["file_loc"]
         if "substring" not in kwargs:
             kwargs["substring"]=None
+        if "desired_cols" not in kwargs:
+            kwargs["desired_cols"]=False
+        elif isinstance(kwargs["desired_cols"], list) is False:
+            raise TypeError("desired_cols needs to be of type list")
+        
         if isinstance(name,str):
             filetype=self.detect_filetype(name)
             if filetype==None:
                 raise ValueError("No files of the right type found")
-            data=self.read_file(directory+"/"+name, filetype, header=kwargs["header"], footer=kwargs["footer"])
-            self.data=[data]
+            file=self.read_file(directory+"/"+name, filetype, header=kwargs["header"], footer=kwargs["footer"])
+            if kwargs["desired_cols"] is not False:
+                file=column_stack(([file[:,x] for x in kwargs["desired_cols"]]))
+            self.data=[file]
         elif isinstance(name,list):
             data_list=[]
             if isinstance(kwargs["header"], int):
                 kwargs["header"]=[kwargs["header"]]*len(name)
             if isinstance(kwargs["footer"], int):
                 kwargs["footer"]=[kwargs["footer"]]*len(name)
+            if kwargs["desired_cols"] is not False:
+                if isinstance(kwargs["desired_cols"][0], list) is False:
+                    kwargs["desired_cols"]=[kwargs["desired_cols"]]*len(name)
             if kwargs["substring"]!=None:
                 self.name_list=[]
             else:
@@ -50,10 +60,13 @@ class read:
                             if true_name in element:
                                 already_in=True
                     if already_in is not True:    
-                        data_list.append(self.read_file(directory+"/"+name[i], filetype, header=kwargs["header"][i], footer=kwargs["footer"][i]))
+                        file=self.read_file(directory+"/"+name[i], filetype, header=kwargs["header"][i], footer=kwargs["footer"][i])
+                        if kwargs["desired_cols"] is not False:
+                            file=column_stack(([file[:,x] for x in kwargs["desired_cols"][i]]))
+                        data_list.append(file)
                         if filetype=="cv_":
                             exclude_list.append(name[i])
-                            print("hey", name[i], exclude_list)
+                            
 
             self.data=data_list
         else:
