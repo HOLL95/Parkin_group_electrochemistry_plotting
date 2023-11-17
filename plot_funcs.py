@@ -21,7 +21,8 @@ class Electrochem_plots:
                 kwargs["colour"]=[kwargs["colour"]]
         elif not isinstance(kwargs["colour"], list) or len(kwargs["colour"]) != len(data):
             raise ValueError("For multiple plots, you need to provide a colour for each plot in the format  [\"colour1\", \"colour2\"]")
-            
+        if "init_freq_guess" not in kwargs:
+            kwargs["init_freq_guess"]=None
         if "one_tail" not in kwargs:
             kwargs["one_tail"]=True
         else:
@@ -137,7 +138,11 @@ class Electrochem_plots:
             fft=np.fft.fft(plot_dict["current"])
             abs_fft=np.abs(fft)
             fft_freq=np.fft.fftfreq(len(plot_dict["current"]), plot_dict["time"][1]-plot_dict["time"][0])
-            max_freq=abs(max(fft_freq[np.where(abs_fft==max(abs_fft))]))
+            if kwargs["init_freq_guess"] is not None:
+                inspect_fft=abs_fft[np.where(fft_freq>kwargs["init_freq_guess"])]
+            else:
+                inspect_fft=abs_fft[np.where(fft_freq>0.5)]
+            max_freq=abs(max(fft_freq[np.where(abs_fft==max(inspect_fft))]))
             highest_harm=kwargs["desired_harmonics"][-1]
             upper_bound=max_freq*(highest_harm+0.25)
             highest_freq=abs(fft_freq[len(fft_freq)//2])
