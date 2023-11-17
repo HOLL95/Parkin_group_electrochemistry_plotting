@@ -10,7 +10,7 @@ class Electrochem_plots:
         num_plots=len(desired_plots)
         if len(order)!=len(data):
             order=[order]*len(data)
-        elif len(data)==3:
+        elif len(data)==3 and isinstance(data[0], list) is not False: 
             order=[order]*3
         if "colour" not in kwargs:
             kwargs["colour"]=[None]*len(data)
@@ -148,6 +148,7 @@ class Electrochem_plots:
             upper_bound=max_freq*(highest_harm+0.25)
             highest_freq=abs(fft_freq[len(fft_freq)//2])
             pot=plot_dict["potential"]
+
             fft_pot=np.fft.fft(pot)
             zero_harm_idx=np.where((fft_freq>-(0.1*max_freq)) & (fft_freq<(0.1*max_freq)))
             dc_pot=np.zeros(len(fft_pot), dtype="complex")
@@ -244,20 +245,23 @@ class Electrochem_plots:
                     h_class=harmonics(kwargs["desired_harmonics"], max_freq, kwargs["harmonics_box"])
                     plot_harms=h_class.generate_harmonics(plot_dict["time"], plot_dict["current"], hanning=kwargs["harmonic_hanning"], plot_func=fourier_funcs[kwargs["harmonic_funcs"]])
                     for h in range(0, num_harms):
-                        axis[h].plot(x_data, hfunc(plot_harms[h, :]), label=kwargs["labels"][j], color=kwargs["colour"][j])
-                        if h==num_harms-1:
-                             axis[h].set_xlabel(plot_labels[x_axis])
+                        if h>=len(master_harmonics):
+                            continue
                         else:
-                            axis[h].set_xticks([])
-                        if h ==num_harms//2:
-                            axis[h].set_ylabel(plot_labels["current"])
-                        if kwargs["harmonic_number"]==True:
-                            if j==0:
-                                twinx=axis[h].twinx()
-                                twinx.set_ylabel(master_harmonics[h], rotation=0)
-                                twinx.set_yticks([])
-                        if kwargs["save_as_csv"] is not False:
-                            current_save_df["{2} Harmonic {0} ({1})".format(master_harmonics[h], (scale_list[kwargs["current_scaling"]]+"A"), kwargs["harmonic_funcs"])]=hfunc(plot_harms[h, :])
+                            axis[h].plot(x_data, hfunc(plot_harms[h, :]), label=kwargs["labels"][j], color=kwargs["colour"][j])
+                            if h==num_harms-1:
+                                axis[h].set_xlabel(plot_labels[x_axis])
+                            else:
+                                axis[h].set_xticks([])
+                            if h ==num_harms//2:
+                                axis[h].set_ylabel(plot_labels["current"])
+                            if kwargs["harmonic_number"]==True:
+                                if j==0:
+                                    twinx=axis[h].twinx()
+                                    twinx.set_ylabel(master_harmonics[h], rotation=0)
+                                    twinx.set_yticks([])
+                            if kwargs["save_as_csv"] is not False:
+                                current_save_df["{2} Harmonic {0} ({1})".format(master_harmonics[h], (scale_list[kwargs["current_scaling"]]+"A"), kwargs["harmonic_funcs"])]=hfunc(plot_harms[h, :])
             if kwargs["save_as_csv"] is not False:
                 kwarg_keys=list(kwargs.keys())
                 new_list=["" for i in range(0, len(kwarg_keys))]
