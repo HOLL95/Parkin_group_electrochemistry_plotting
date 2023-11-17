@@ -2,6 +2,7 @@ from numpy import loadtxt, column_stack
 import re
 from pandas import read_csv, read_excel
 from os import getcwd
+import platform
 class read:
     def __init__(self, name, **kwargs):
         if "header" not in kwargs:
@@ -23,7 +24,11 @@ class read:
             filetype=self.detect_filetype(name)
             if filetype==None:
                 raise ValueError("No files of the right type found")
-            file=self.read_file(directory+"/"+name, filetype, header=kwargs["header"], footer=kwargs["footer"])
+            if "Windows" in platform.system():
+            	total_address=directory+"\\"+name
+            else:
+            	total_address=directory+"/"+name
+            file=self.read_file(total_address, filetype, header=kwargs["header"], footer=kwargs["footer"])
             if kwargs["desired_cols"] is not False:
                 file=column_stack(([file[:,x] for x in kwargs["desired_cols"]]))
             self.data=[file]
@@ -59,8 +64,12 @@ class read:
                         for element in exclude_list:
                             if true_name in element:
                                 already_in=True
-                    if already_in is not True:    
-                        file=self.read_file(directory+"/"+name[i], filetype, header=kwargs["header"][i], footer=kwargs["footer"][i])
+                    if already_in is not True:  
+                        if "Windows" in platform.system():
+                                total_address=directory+"\\"+name[i]
+                        else:
+                                total_address=directory+"/"+name[i]  
+                        file=self.read_file(total_address, filetype, header=kwargs["header"][i], footer=kwargs["footer"][i])
                         if kwargs["desired_cols"] is not False:
                             file=column_stack(([file[:,x] for x in kwargs["desired_cols"][i]]))
                         data_list.append(file)

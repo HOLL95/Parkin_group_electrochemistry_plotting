@@ -107,7 +107,7 @@ class Electrochem_plots:
             fig, ax=plt.subplots(1, num_plots)
             if num_plots==1:
                 ax=[ax]
-        scale_list={1:"", 1000:"m", 1e6:r"μ", 1e9:"n", 1e12:"p"}
+        scale_list={1:"", 1000:"m", 1e6:"micro ", 1e9:"n", 1e12:"p"}
         plot_units={"current":"A", "potential":"V"}
         plot_labels={"time":"Time(s)"}
         for scaling in ["current", "potential"]:
@@ -274,7 +274,7 @@ class Electrochem_plots:
                 full_list=(" ").join(new_list)+"\r\n"
                 template = full_list+"{}"
                 with open("{0}.csv".format(kwargs["labels"][j]), 'w') as fp:
-                    fp.write(template.format(current_save_df.to_csv(index=False)))
+                    fp.write(template.format(current_save_df.to_csv(index=False, lineterminator='\n')))
                 
             if kwargs["legend_loc"]!=None:
                 legend_axis.legend()
