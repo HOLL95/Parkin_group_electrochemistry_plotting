@@ -2,11 +2,15 @@ import os
 from file_reader import read
 from plot_funcs import Electrochem_plots
 from matplotlib.pyplot import show, subplots_adjust
-loc="/home/henney/Documents/Oxford/Experimental_data/Alice/Immobilised_Fc/GC-1/Fc/Exported/"
+import platform
+if "Windows" in platform.system():
+    loc=os.getcwd()+"\Examples"
+else:
+    loc=os.getcwd()+"/Examples"
 example_file_list=os.listdir(loc) #This is how you can find a list of files in a directory
-sub_str="PSV"
+sub_str="FTacV"
 read_files=read(
-        example_file_list, #List of file names - if not in the directory with master_plotter, and address needs to be provided file_loc
+        example_file_list[1:3], #List of file names - if not in the directory with master_plotter, and address needs to be provided file_loc
         header=1, #Number of rows to skip - if this not constant between files, you will need to provide a list [x,y...] of the appropriate skipnumber
         footer=0, #Ditto
         file_loc=loc,# File location of your files. Defaults to the current directory if not provided
@@ -34,6 +38,7 @@ Electrochem_plots(
     DC_only=False,#If you want to plot the DC component of the potential
     decimation=32,#Degree of plot decimation
     print_FTV_info=True,
+    save_as_csv=True,
     
 )
 subplots_adjust(

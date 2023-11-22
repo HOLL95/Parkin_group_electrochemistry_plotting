@@ -227,8 +227,25 @@ class Electrochem_plots:
                         axis[0].semilogy(plot_freq, np.abs(plot_Y), label=kwargs["labels"][j], color=kwargs["colour"][j])
                     else:
                         axis[0].plot(plot_freq, np.real(plot_Y), label=kwargs["labels"][j], color=kwargs["colour"][j])
+                    if kwargs["save_as_csv"] is not False:
+                        fouriersave_dict={"Frequency (Hz)":plot_freq}
+                        if kwargs["FourierScale"]=="log":
+                            label="log({0}(FFT))".format(kwargs["FourierFunc"])
+                            fouriersave_dict[label]=np.log10(np.abs(plot_Y))
+                        else:
+                            label="{0}(FFT)".format(kwargs["FourierFunc"])
+                            fouriersave_dict[label]=np.real(plot_Y)
+                        if kwargs["labels"][j] is None:
+                            savename_Fourier=str(j)+"_Fourier"
+                        else:
+                            savename_Fourier=kwargs["labels"][j]+"_Fourier"
+                        Fourier_savedf=pd.DataFrame(data=fouriersave_dict)
+                        template="{}"
+                        with open("{0}.csv".format(savename_Fourier), 'w') as fp:
+                            fp.write(template.format(Fourier_savedf.to_csv(index=False, lineterminator='\n')))
+        
                     axis[0].set_xlabel("Frequency (Hz)")
-                    axis[0].set_ylabel("Magnitude")
+                    axis[0].set_ylabel("{0} Magnitude".format(kwargs["FourierFunc"]))
                     #if kwargs["save_as_csv"] is not False:
                     #    current_save_df["Frequency (Hz)"]=plot_freq
                     #    current_save_df[kwargs["FourierFunc"] + " Magnitudes"]=plot_Y
@@ -239,6 +256,9 @@ class Electrochem_plots:
                     axis[0].plot(x_data, y_data, label=kwargs["labels"][j], color=kwargs["colour"][j])
                     axis[0].set_xlabel(plot_labels[x_axis])
                     axis[0].set_ylabel(plot_labels[y_axis])
+
+
+
                 elif "harmonics" in desired_plots[i]:
                     hfunc=fourier_funcs[kwargs["harmonic_funcs"]]
                     x_data=plot_dict[x_axis]
@@ -277,7 +297,11 @@ class Electrochem_plots:
                     new_list[i]="{0}:{1}{2}".format(kwarg_keys[i], kwargs[kwarg_keys[i]], end)
                 full_list=(" ").join(new_list)+"\r\n"
                 template = full_list+"{}"
-                with open("{0}.csv".format(kwargs["labels"][j]), 'w') as fp:
+                if kwargs["labels"][j] is None:
+                    savename=str(j)
+                else:
+                    savename=kwargs["labels"][j]                    
+                with open("{0}.csv".format(savename), 'w') as fp:
                     fp.write(template.format(current_save_df.to_csv(index=False, lineterminator='\n')))
                 
             if kwargs["legend_loc"]!=None:
