@@ -59,25 +59,31 @@ class harmonics:
         f=np.fft.fftfreq(len(time_series), times[1]-times[0])
         Y=np.fft.fft(time_series)
         last_harm=(self.harmonics[-1]*self.input_frequency)
-        frequencies=f[np.where((f>0) & (f<(last_harm+(0.5*self.input_frequency))))]
-        top_hat=(copy.deepcopy(Y[0:len(frequencies)]))
+        frequencies=f#[np.where((f>0) & (f<(last_harm+(0.5*self.input_frequency))))]
+        
         harmonics=np.zeros((self.num_harmonics, len(time_series)), dtype="complex")
         for i in range(0, self.num_harmonics):
+            
             true_harm=self.harmonics[i]*self.input_frequency
-            #plt.axvline(true_harm, color="black")
-            freq_idx=np.where((frequencies<(true_harm+(self.input_frequency*self.filter_val))) & (frequencies>true_harm-(self.input_frequency*self.filter_val)))
-            filter_bit=(top_hat[freq_idx])
             if kwargs["return_amps"]==True:
 
                 abs_bit=abs(filter_bit)
                 #print(np.real(filter_bit[np.where(abs_bit==max(abs_bit))]))
                 amps[i]=np.real(filter_bit[np.where(abs_bit==max(abs_bit))])
+
+            
             if kwargs["zero_shift"]==True:
                 harmonics[i,0:len(filter_bit)]=func(filter_bit)
             else:
-                harmonics[i,np.where((frequencies<(true_harm+(self.input_frequency*self.filter_val))) & (frequencies>true_harm-(self.input_frequency*self.filter_val)))]=func(filter_bit)
+                f_domain_harmonic=np.zeros(len(Y), dtype="complex")
+                for j in [-1,1]:
+                    top_hat=copy.deepcopy(Y)#(copy.deepcopy(Y[0:len(frequencies)]))
+                    top_hat[np.where((frequencies>(j*true_harm+(self.input_frequency*self.filter_val))) | (frequencies<true_harm*j-(self.input_frequency*self.filter_val)))]=0
+                    f_domain_harmonic+=top_hat
+
+                #harmonics[i,np.where((frequencies<(true_harm+(self.input_frequency*self.filter_val))) & (frequencies>true_harm-(self.input_frequency*self.filter_val)))]=func(filter_bit)
             #harmonics[i,0:len(filter_bit)]=func(filter_bit)
-            harmonics[i,:]=((np.fft.ifft(harmonics[i,:])))
+            harmonics[i,:]=((np.fft.ifft(top_hat)))
         self.f=f
         self.Y=Y
         if kwargs["return_amps"]==True:
