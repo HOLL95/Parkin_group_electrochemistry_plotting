@@ -8,9 +8,10 @@ import pandas as pd
 class Electrochem_plots:
     def __init__(self, data, order, desired_plots, **kwargs):
         num_plots=len(desired_plots)
+        
         if len(order)!=len(data):
             order=[order]*len(data)
-        elif len(data)==3 and isinstance(data[0], list) is not False: 
+        elif len(data)==3 and isinstance(order[0], list) is False: 
             order=[order]*3
         if "colour" not in kwargs:
             kwargs["colour"]=[None]*len(data)
@@ -122,7 +123,6 @@ class Electrochem_plots:
         for j in range(0, len(data)):
             #if isinstance(order[0], str):
             #    order=[order]
-            
             if kwargs["decimation"]==False:
                 plot_dict={key:data[j][:,order[j].index(key)] for key in ["current", "potential", "time"]}
             else:
@@ -265,6 +265,7 @@ class Electrochem_plots:
                     h_class=harmonics(kwargs["desired_harmonics"], max_freq, kwargs["harmonics_box"])
                     plot_harms=h_class.generate_harmonics(plot_dict["time"], plot_dict["current"], hanning=kwargs["harmonic_hanning"], plot_func=fourier_funcs[kwargs["harmonic_funcs"]])
                     for h in range(0, num_harms):
+                        print(h, master_harmonics)
                         if h>=len(master_harmonics):
                             continue
                         else:
