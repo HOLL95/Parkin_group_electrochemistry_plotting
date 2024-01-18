@@ -265,7 +265,6 @@ class Electrochem_plots:
                     h_class=harmonics(kwargs["desired_harmonics"], max_freq, kwargs["harmonics_box"])
                     plot_harms=h_class.generate_harmonics(plot_dict["time"], plot_dict["current"], hanning=kwargs["harmonic_hanning"], plot_func=fourier_funcs[kwargs["harmonic_funcs"]])
                     for h in range(0, num_harms):
-                        print(h, master_harmonics)
                         if h>=len(master_harmonics):
                             continue
                         else:
