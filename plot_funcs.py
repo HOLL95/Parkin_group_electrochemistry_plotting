@@ -169,9 +169,9 @@ class Electrochem_plots:
                     print("Estimated scan rate={0} V/s".format(scan_rate))
                     print("Best guess E_start={0} V, E_reverse={1} V".format(E_points[0], E_points[1]))
             if upper_bound>highest_freq:
-
+                print(highest_freq, max_freq,int(highest_freq//max_freq))
                 highest_harm= int(highest_freq//max_freq)
-                master_harmonics=list(range(1,highest_harm))
+                master_harmonics=list(range(master_harmonics[0],highest_harm))
                 upper_bound=max_freq*(highest_harm+0.25)
                 warnings.warn("Highest accessible frequency lower than harmonic number")
             for i in range(0, len(desired_plots)):
@@ -263,12 +263,24 @@ class Electrochem_plots:
                     hfunc=fourier_funcs[kwargs["harmonic_funcs"]]
                     x_data=plot_dict[x_axis]
                     h_class=harmonics(kwargs["desired_harmonics"], max_freq, kwargs["harmonics_box"])
-                    plot_harms=h_class.generate_harmonics(plot_dict["time"], plot_dict["current"], hanning=kwargs["harmonic_hanning"], plot_func=fourier_funcs[kwargs["harmonic_funcs"]])
+                    plot_func=fourier_funcs[kwargs["harmonic_funcs"]]
+                    if plot_func==np.abs or plot_func==abs:
+                        one_sided=True
+                    else:
+                        one_sided=False
+                    plot_harms=h_class.generate_harmonics(plot_dict["time"], plot_dict["current"], hanning=kwargs["harmonic_hanning"], plot_func=plot_func, one_sided=one_sided)
                     for h in range(0, num_harms):
                         if h>=len(master_harmonics):
                             continue
                         else:
-                            axis[h].plot(x_data, hfunc(plot_harms[h, :]), label=kwargs["labels"][j], color=kwargs["colour"][j])
+                            if h==0 and h==master_harmonics[h]:
+                                if hfunc==np.abs or hfunc==abs:
+                                    temp_func=np.real
+                                else:
+                                    temp_func=hfunc
+                                axis[h].plot(x_data, temp_func(plot_harms[h, :]), label=kwargs["labels"][j], color=kwargs["colour"][j])
+                            else:
+                                axis[h].plot(x_data, hfunc(plot_harms[h, :]), label=kwargs["labels"][j], color=kwargs["colour"][j])
                             if h==num_harms-1:
                                 axis[h].set_xlabel(plot_labels[x_axis])
                             else:
