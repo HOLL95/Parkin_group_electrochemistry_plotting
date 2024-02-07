@@ -170,8 +170,10 @@ class Electrochem_plots:
                     print("Best guess E_start={0} V, E_reverse={1} V".format(E_points[0], E_points[1]))
             if upper_bound>highest_freq:
                 print(highest_freq, max_freq,int(highest_freq//max_freq))
-                highest_harm= int(highest_freq//max_freq)
+                highest_harm= int(highest_freq//max_freq)+1
                 master_harmonics=list(range(master_harmonics[0],highest_harm))
+                kwargs["desired_harmonics"]=master_harmonics
+                num_harms=len(kwargs["desired_harmonics"])
                 upper_bound=max_freq*(highest_harm+0.25)
                 warnings.warn("Highest accessible frequency lower than harmonic number")
             for i in range(0, len(desired_plots)):
@@ -270,17 +272,23 @@ class Electrochem_plots:
                         one_sided=False
                     plot_harms=h_class.generate_harmonics(plot_dict["time"], plot_dict["current"], hanning=kwargs["harmonic_hanning"], plot_func=plot_func, one_sided=one_sided)
                     for h in range(0, num_harms):
+                        print(master_harmonics[h], master_harmonics, num_harms)
                         if h>=len(master_harmonics):
                             continue
+                       
                         else:
                             if h==0 and h==master_harmonics[h]:
                                 if hfunc==np.abs or hfunc==abs:
                                     temp_func=np.real
                                 else:
                                     temp_func=hfunc
-                                axis[h].plot(x_data, temp_func(plot_harms[h, :]), label=kwargs["labels"][j], color=kwargs["colour"][j])
+                                
+                                zeroth_harm=h_class.generate_harmonics(plot_dict["time"], plot_dict["current"], hanning=False, plot_func=plot_func, one_sided=one_sided)
+                                thing_to_plot=temp_func(zeroth_harm[h, :])
+                                axis[h].plot(x_data, thing_to_plot, label=kwargs["labels"][j], color=kwargs["colour"][j])
                             else:
-                                axis[h].plot(x_data, hfunc(plot_harms[h, :]), label=kwargs["labels"][j], color=kwargs["colour"][j])
+                                thing_to_plot=hfunc(plot_harms[h, :])
+                                axis[h].plot(x_data, thing_to_plot, label=kwargs["labels"][j], color=kwargs["colour"][j])
                             if h==num_harms-1:
                                 axis[h].set_xlabel(plot_labels[x_axis])
                             else:
@@ -293,7 +301,7 @@ class Electrochem_plots:
                                     twinx.set_ylabel(master_harmonics[h], rotation=0)
                                     twinx.set_yticks([])
                             if kwargs["save_as_csv"] is not False:
-                                current_save_df["{2} Harmonic {0} ({1})".format(master_harmonics[h], (scale_list[kwargs["current_scaling"]]+"A"), kwargs["harmonic_funcs"])]=hfunc(plot_harms[h, :])
+                                current_save_df["{2} Harmonic {0} ({1})".format(master_harmonics[h], (scale_list[kwargs["current_scaling"]]+"A"), kwargs["harmonic_funcs"])]=thing_to_plot
             if kwargs["save_as_csv"] is not False:
                 kwarg_keys=list(kwargs.keys())
                 new_list=["" for i in range(0, len(kwarg_keys))]
