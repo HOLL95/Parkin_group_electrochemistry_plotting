@@ -28,11 +28,14 @@ class Electrochem_plots:
             kwargs["one_tail"]=True
         else:
             self.valid_checker(kwargs["one_tail"], "bool", "one_tail")
+            
         if "labels" not in kwargs:
             kwargs["labels"]=[None for i in range(0, len(data))]
         else:
             if len(kwargs["labels"])!= len(data):
                 raise ValueError("Label list ({0}) needs to be as long as the number of data files ({1})".format(len(kwargs["labels"]), len(data)))
+        if "alpha" not in kwargs:
+            kwargs["alpha"]=1
         if "legend_loc" not in kwargs:
             kwargs["legend_loc"]=None
         if kwargs["legend_loc"]>num_plots-1:
@@ -84,8 +87,11 @@ class Electrochem_plots:
             kwargs["print_FTV_info"]=False
         if "save_as_csv" not in kwargs:
             kwargs["save_as_csv"]=False
+        if "clip_oscillations" not in kwargs:#
+            kwargs["clip_oscillations"]=False
         elif isinstance(kwargs["save_as_csv"], bool) is False:
             raise ValueError("save_as_csv needs to be True or False, not {0}".format(type(kwargs["save_as_csv"])))
+        
         #elif ".csv" not in kwargs["save_as_csv"]:
         #    raise ValueError("Need to provide a csv filename (i.e ending in .csv, not {0})".format(kwargs["save_as_csv"]))
        
@@ -127,9 +133,8 @@ class Electrochem_plots:
                 plot_dict={key:data[j][:,order[j].index(key)] for key in ["current", "potential", "time"]}
             else:
                 plot_dict={key:decimate(data[j][:,order[j].index(key)], kwargs["decimation"]) for key in ["current", "potential", "time"]}
-            if kwargs["save_as_csv"] is not False:
-                save_dict={"{0} ({1})".format(key, unit_dict[key]):plot_dict[key] for key in ["time", "potential","current",]}
-                current_save_df=pd.DataFrame(data=save_dict)
+                
+           
             for scaling in ["current", "potential"]:
                 plot_dict[scaling]=np.multiply(plot_dict[scaling], kwargs[scaling+"_scaling"])
            
@@ -144,18 +149,29 @@ class Electrochem_plots:
                 look_region=np.where((fft_freq>0.5*kwargs["init_frequency_guess"]) & (fft_freq<1.5*kwargs["init_frequency_guess"]))
             inspect_fft=abs_fft[look_region]
             max_freq=abs(max(fft_freq[np.where(abs_fft==max(inspect_fft))]))
+            if kwargs["clip_oscillations"] is not False:
+                start_time=kwargs["clip_oscillations"][0]/max_freq
+                end_time=plot_dict["time"][-1]-(kwargs["clip_oscillations"][1]/max_freq)
+                time_idx=np.where((plot_dict["time"]>start_time) & (plot_dict["time"]<end_time))
+            else:
+                time_idx=np.where(plot_dict["time"]>0)
             highest_harm=kwargs["desired_harmonics"][-1]
             upper_bound=max_freq*(highest_harm+0.25)
             highest_freq=abs(fft_freq[len(fft_freq)//2])
             pot=plot_dict["potential"]
-
+            if kwargs["save_as_csv"] is not False:
+                save_dict={}
+                save_dict["time (s)"]=plot_dict["time"][time_idx]
+                save_dict.update({"{0} ({2}{1})".format(key, unit_dict[key], scale_list[kwargs["{0}_scaling".format(key)]]):plot_dict[key][time_idx] for key in ["potential","current",]})
+                
+                current_save_df=pd.DataFrame(data=save_dict)
             fft_pot=np.fft.fft(pot)
             zero_harm_idx=np.where((fft_freq>-(0.1*max_freq)) & (fft_freq<(0.1*max_freq)))
             dc_pot=np.zeros(len(fft_pot), dtype="complex")
             dc_pot[zero_harm_idx]=fft_pot[zero_harm_idx]
             time_domain_dc_pot=np.real(np.fft.ifft(dc_pot))
             if kwargs["save_as_csv"] is not False:
-                current_save_df["DC_potential ({0}V)".format(scale_list[kwargs["potential_scaling"]])]=time_domain_dc_pot
+                current_save_df["DC_potential ({0}V)".format(scale_list[kwargs["potential_scaling"]])]=time_domain_dc_pot[time_idx]
             if kwargs["DC_only"]==True:
                 plot_dict["potential"]=time_domain_dc_pot
             if kwargs["print_FTV_info"]==True:
@@ -169,7 +185,7 @@ class Electrochem_plots:
                     print("Estimated scan rate={0} V/s".format(scan_rate))
                     print("Best guess E_start={0} V, E_reverse={1} V".format(E_points[0], E_points[1]))
             if upper_bound>highest_freq:
-                print(highest_freq, max_freq,int(highest_freq//max_freq))
+               
                 highest_harm= int(highest_freq//max_freq)+1
                 master_harmonics=list(range(master_harmonics[0],highest_harm))
                 kwargs["desired_harmonics"]=master_harmonics
@@ -189,7 +205,7 @@ class Electrochem_plots:
                 else:
                     axis=[ax[i]]
                     if kwargs["legend_loc"]!=None:
-                        print(ax, kwargs["legend_loc"])
+                       
                         legend_axis=ax[kwargs["legend_loc"]]
 
 
@@ -226,9 +242,9 @@ class Electrochem_plots:
                         for i in range(1, highest_harm+1):
                             axis[0].axvline(i*max_freq, color="black", linestyle="--")
                     if kwargs["FourierScale"]=="log":
-                        axis[0].semilogy(plot_freq, np.abs(plot_Y), label=kwargs["labels"][j], color=kwargs["colour"][j])
+                        axis[0].semilogy(plot_freq, np.abs(plot_Y), label=kwargs["labels"][j], color=kwargs["colour"][j], alpha=kwargs["alpha"])
                     else:
-                        axis[0].plot(plot_freq, np.real(plot_Y), label=kwargs["labels"][j], color=kwargs["colour"][j])
+                        axis[0].plot(plot_freq, np.real(plot_Y), label=kwargs["labels"][j], color=kwargs["colour"][j], alpha=kwargs["alpha"])
                     if kwargs["save_as_csv"] is not False:
                         fouriersave_dict={"Frequency (Hz)":plot_freq}
                         if kwargs["FourierScale"]=="log":
@@ -255,7 +271,7 @@ class Electrochem_plots:
                     x_data=plot_dict[x_axis]
                     y_data=plot_dict[y_axis]
                    
-                    axis[0].plot(x_data, y_data, label=kwargs["labels"][j], color=kwargs["colour"][j])
+                    axis[0].plot(x_data, y_data, label=kwargs["labels"][j], color=kwargs["colour"][j], alpha=kwargs["alpha"])
                     axis[0].set_xlabel(plot_labels[x_axis])
                     axis[0].set_ylabel(plot_labels[y_axis])
 
@@ -272,7 +288,7 @@ class Electrochem_plots:
                         one_sided=False
                     plot_harms=h_class.generate_harmonics(plot_dict["time"], plot_dict["current"], hanning=kwargs["harmonic_hanning"], plot_func=plot_func, one_sided=one_sided)
                     for h in range(0, num_harms):
-                        print(master_harmonics[h], master_harmonics, num_harms)
+                        
                         if h>=len(master_harmonics):
                             continue
                        
@@ -285,10 +301,10 @@ class Electrochem_plots:
                                 
                                 zeroth_harm=h_class.generate_harmonics(plot_dict["time"], plot_dict["current"], hanning=False, plot_func=plot_func, one_sided=one_sided)
                                 thing_to_plot=temp_func(zeroth_harm[h, :])
-                                axis[h].plot(x_data, thing_to_plot, label=kwargs["labels"][j], color=kwargs["colour"][j])
+                                axis[h].plot(x_data[time_idx], thing_to_plot[time_idx], label=kwargs["labels"][j], color=kwargs["colour"][j], alpha=kwargs["alpha"])
                             else:
                                 thing_to_plot=hfunc(plot_harms[h, :])
-                                axis[h].plot(x_data, thing_to_plot, label=kwargs["labels"][j], color=kwargs["colour"][j])
+                                axis[h].plot(x_data[time_idx], thing_to_plot[time_idx], label=kwargs["labels"][j], color=kwargs["colour"][j], alpha=kwargs["alpha"])
                             if h==num_harms-1:
                                 axis[h].set_xlabel(plot_labels[x_axis])
                             else:
@@ -301,7 +317,8 @@ class Electrochem_plots:
                                     twinx.set_ylabel(master_harmonics[h], rotation=0)
                                     twinx.set_yticks([])
                             if kwargs["save_as_csv"] is not False:
-                                current_save_df["{2} Harmonic {0} ({1})".format(master_harmonics[h], (scale_list[kwargs["current_scaling"]]+"A"), kwargs["harmonic_funcs"])]=thing_to_plot
+                                
+                                current_save_df["{2} Harmonic {0} ({1})".format(master_harmonics[h], (scale_list[kwargs["current_scaling"]]+"A"), kwargs["harmonic_funcs"])]=thing_to_plot[time_idx]
             if kwargs["save_as_csv"] is not False:
                 kwarg_keys=list(kwargs.keys())
                 new_list=["" for i in range(0, len(kwarg_keys))]
