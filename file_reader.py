@@ -1,8 +1,9 @@
 from numpy import loadtxt, column_stack
 import re
-from pandas import read_csv, read_excel
-from os import getcwd
+from pandas import read_csv, read_excel ,read_sql_query
+import os
 import platform
+import sqlite3
 class read:
     def __init__(self, name, **kwargs):
         if "header" not in kwargs:
@@ -10,24 +11,28 @@ class read:
         if "footer" not in kwargs:
             kwargs["footer"]=0
         if "file_loc" not in kwargs:
-            directory=getcwd()
+            directory=os.getcwd()
         else:   
             directory=kwargs["file_loc"]
         if "substring" not in kwargs:
             kwargs["substring"]=None
         if "desired_cols" not in kwargs:
             kwargs["desired_cols"]=False
+        if "sql_table" not in kwargs:
+            kwargs["sql_table"]="point"
+        if "sql_mapping" not in kwargs:
+            init_mapping={"t":"time", "y":"current", "z":"potential"}
+            kwargs["sql_mapping"]={init_mapping[key]:key for key in init_mapping.keys()}
+       
         elif isinstance(kwargs["desired_cols"], list) is False:
             raise TypeError("desired_cols needs to be of type list")
-        
+        self.sql_mapping=kwargs["sql_mapping"]
+        self.sql_table=kwargs["sql_table"]
         if isinstance(name,str):
             filetype=self.detect_filetype(name)
             if filetype==None:
                 raise ValueError("No files of the right type found")
-            if "Windows" in platform.system():
-            	total_address=directory+"\\"+name
-            else:
-            	total_address=directory+"/"+name
+            total_address=os.path.join(directory, name)
             file=self.read_file(total_address, filetype, header=kwargs["header"], footer=kwargs["footer"])
             if kwargs["desired_cols"] is not False:
                 file=column_stack(([file[:,x] for x in kwargs["desired_cols"]]))
@@ -65,17 +70,16 @@ class read:
                             if true_name in element:
                                 already_in=True
                     if already_in is not True:  
-                        if "Windows" in platform.system():
-                                total_address=directory+"\\"+name[i]
-                        else:
-                                total_address=directory+"/"+name[i]  
+                        total_address=os.path.join(directory, name)
+                        
                         file=self.read_file(total_address, filetype, header=kwargs["header"][i], footer=kwargs["footer"][i])
                         if kwargs["desired_cols"] is not False:
                             file=column_stack(([file[:,x] for x in kwargs["desired_cols"][i]]))
                         data_list.append(file)
                         if filetype=="cv_":
                             exclude_list.append(name[i])
-                            
+                       
+                          
 
             self.data=data_list
         else:
@@ -85,7 +89,7 @@ class read:
     
     def detect_filetype(self, file):
         filetype=None
-        accepted_files=[".csv", ".txt", ".xlsx", "cv_"]
+        accepted_files=[".csv", ".txt", ".xlsx", "cv_", ".sqlite"]
         for extension in accepted_files:
             if extension in file:
                 filetype=extension
@@ -109,4 +113,12 @@ class read:
             potential=loadtxt(true_name+"cv_voltage")
             data=column_stack((current, potential[:,1]))    
             print("Warning - Monash intrument data stored as time-current-potential")
+        elif ".sqlite" in name:
+            conn = sqlite3.connect(name)
+            cursor=conn.cursor()
+            table_name=self.sql_table
+            
+            df = read_sql_query("SELECT {0} FROM {1}".format(", ".join([self.sql_mapping[x] for x in ["time", "current","potential"]]), table_name), conn)
+            data=df.to_numpy()
+            conn.close()
         return data
