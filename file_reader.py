@@ -103,7 +103,13 @@ class read:
         if filetype==".txt":
             data=loadtxt(name, skiprows=header)
         elif filetype==".csv":
-            pd_data=read_csv(name, sep=",", encoding="utf-16", engine="python", skiprows=header, skipfooter=footer)
+            try:
+             pd_data=read_csv(name, sep=",", encoding="utf-16", engine="python", skiprows=header, skipfooter=footer)
+            except:
+                try:
+                    pd_data=read_csv(name, sep=",", encoding="utf-8", engine="python", skiprows=header, skipfooter=footer)
+                except:
+                    raise
             data=pd_data.to_numpy(copy=True, dtype='float')
         elif filetype==".xlsx":
             pd_data = read_excel(name,engine='openpyxl', skiprows=header, skipfooter=footer)
