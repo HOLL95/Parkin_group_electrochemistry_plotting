@@ -70,7 +70,8 @@ class read:
                             if true_name in element:
                                 already_in=True
                     if already_in is not True:  
-                        total_address=os.path.join(directory, name)
+                        
+                        total_address=os.path.join(directory, name[i])
                         
                         file=self.read_file(total_address, filetype, header=kwargs["header"][i], footer=kwargs["footer"][i])
                         if kwargs["desired_cols"] is not False:
